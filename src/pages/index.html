@@ -7,8 +7,30 @@
 		<link rel="stylesheet" href="tailwindcss" />
 	</head>
 	<body>
-		<div class="flex justify-center absolute inset-0 bg-orange-200 items-center">
+		<div class="flex flex-col	 items-center justify-center gap-3 absolute inset-0 bg-orange-200 ">
 			<h1 class="text-7xl">Bun is <span class="text-blue-500">awesome!</span></h1>
+
+			<div class="ring p-8">
+				<form action="api/todo" method="post" class="flex gap-2">
+					<input
+						name="title"
+						type="text"
+						placeholder="Enter a todo"
+						class="p-2 border border-gray-500 rounded"
+					/>
+					<button
+						type="submit"
+						class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+					>
+						Add Todo
+					</button>
+			</div>
+
+
+
+			<pre id="todos"></pre>
 		</div>
+
+		<script type="module" src="/src/lib/client.ts"></script>
 	</body>
 </html>
