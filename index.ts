@@ -1,4 +1,4 @@
-import homepage from './pages/index.html';
+import homepage from './src/pages/index.html';
 
 const server = Bun.serve({
 	port: 3000,
