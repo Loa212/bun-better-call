@@ -1,27 +1,6 @@
 import { createEndpoint, createRouter } from "better-call";
 import { z } from "zod";
-
-type Todo = {
-	id: string;
-	title: string;
-	description?: string;
-	done?: boolean;
-};
-
-const mockTodos: Todo[] = [
-	{
-		id: "1",
-		title: "Learn TypeScript",
-		description: "Understand the basics of TypeScript.",
-		done: false,
-	},
-	{
-		id: "2",
-		title: "Build a REST API",
-		description: "Create a simple REST API using Node.js and Express.",
-		done: true,
-	},
-];
+import { type Todo, todoDb } from "./database";
 
 export const createTodo = createEndpoint(
 	"/todo",
@@ -34,13 +13,12 @@ export const createTodo = createEndpoint(
 		}),
 	},
 	async (ctx): Promise<Todo> => {
-		// here we are supposed to create a new todo item
-		return {
-			id: crypto.randomUUID(),
-			title: ctx.body.title,
-			description: ctx.body.description,
-			done: ctx.body.done,
-		};
+		// Create a new todo item using the database
+		return todoDb.createTodo(
+			ctx.body.title,
+			ctx.body.description,
+			ctx.body.done,
+		);
 	},
 );
 
@@ -51,15 +29,8 @@ export const getTodos = createEndpoint(
 		query: z.object({ filter: z.string().optional() }),
 	},
 	async (ctx): Promise<Todo[]> => {
-		const todos = mockTodos;
-
-		if (ctx.query.filter) {
-			return todos.filter((todo) =>
-				todo.title.includes(ctx.query.filter || ""),
-			);
-		}
-
-		return todos;
+		// Get todos from the database with optional filtering
+		return todoDb.getTodos(ctx.query.filter);
 	},
 );
 
@@ -72,7 +43,7 @@ export const getTodo = createEndpoint(
 		}),
 	},
 	async (ctx): Promise<Todo> => {
-		const todo = mockTodos.find((t) => t.id === ctx.query.id);
+		const todo = todoDb.getTodoById(ctx.query.id);
 		if (!todo) {
 			throw new Error("Todo not found");
 		}
@@ -92,19 +63,34 @@ export const updateTodo = createEndpoint(
 		}),
 	},
 	async (ctx): Promise<Todo> => {
-		const todo = mockTodos.find((t) => t.id === ctx.query.id);
-		if (!todo) {
+		const updatedTodo = todoDb.updateTodo(ctx.query.id, {
+			title: ctx.query.title,
+			description: ctx.query.description,
+			done: ctx.query.done,
+		});
+
+		if (!updatedTodo) {
 			throw new Error("Todo not found");
 		}
 
-		const retVal = {
-			...todo,
-			title: ctx.query.title ?? todo.title,
-			description: ctx.query.description ?? todo.description,
-			done: ctx.query.done ?? todo.done,
-		} satisfies Todo;
+		return updatedTodo;
+	},
+);
 
-		return retVal;
+export const deleteTodo = createEndpoint(
+	"/todo",
+	{
+		method: "DELETE",
+		query: z.object({
+			id: z.string(),
+		}),
+	},
+	async (ctx): Promise<{ success: boolean }> => {
+		const deleted = todoDb.deleteTodo(ctx.query.id);
+		if (!deleted) {
+			throw new Error("Todo not found");
+		}
+		return { success: true };
 	},
 );
 
@@ -114,6 +100,7 @@ export const router = createRouter(
 		getTodos,
 		getTodo,
 		updateTodo,
+		deleteTodo,
 	},
 	{ basePath: "/api" },
 );
