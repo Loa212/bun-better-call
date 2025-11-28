@@ -1,4 +1,5 @@
-import { Database } from "bun:sqlite";
+import { SQL } from "bun";
+import { env } from "./env";
 
 export type Todo = {
 	id: string;
@@ -7,215 +8,192 @@ export type Todo = {
 	done?: boolean;
 };
 
+type TodoRow = {
+	id: string;
+	title: string;
+	description: string | null;
+	done: boolean;
+};
+
 class TodoDatabase {
-	private db: Database;
+	private readonly sql: SQL;
+	private readonly ready: Promise<void>;
 
-	constructor(filename: string = "todos.sqlite") {
-		this.db = new Database(filename, { create: true });
-
-		// Enable WAL mode for better performance
-		this.db.exec("PRAGMA journal_mode = WAL;");
-
-		this.initializeTables();
-		this.seedInitialData();
+	constructor(connectionString: string = env.DATABASE_URL) {
+		this.sql = new SQL(connectionString);
+		this.ready = this.initialize();
 	}
 
-	private initializeTables() {
-		// Create todos table if it doesn't exist
-		this.db.exec(`
+	private async initialize() {
+		await this.sql`
 			CREATE TABLE IF NOT EXISTS todos (
-				id TEXT PRIMARY KEY,
+				id UUID PRIMARY KEY,
 				title TEXT NOT NULL,
 				description TEXT,
-				done INTEGER DEFAULT 0,
-				created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-				updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+				done BOOLEAN DEFAULT FALSE,
+				created_at TIMESTAMPTZ DEFAULT NOW(),
+				updated_at TIMESTAMPTZ DEFAULT NOW()
 			)
-		`);
+		`;
+
+		await this.seedInitialData();
 	}
 
-	private seedInitialData() {
-		// Check if we already have data
-		const count = this.db
-			.query("SELECT COUNT(*) as count FROM todos")
-			.get() as { count: number };
+	private async seedInitialData() {
+		const [{ count }] = await this.sql`
+			SELECT COUNT(*)::int AS count FROM todos
+		`;
 
-		if (count.count === 0) {
-			// Insert initial todos
-			const insertTodo = this.db.prepare(`
-				INSERT INTO todos (id, title, description, done) 
-				VALUES (?, ?, ?, ?)
-			`);
-
-			const initialTodos = [
-				{
-					id: crypto.randomUUID(),
-					title: "Learn TypeScript",
-					description: "Understand the basics of TypeScript.",
-					done: false,
-				},
-				{
-					id: crypto.randomUUID(),
-					title: "Build a REST API",
-					description: "Create a simple REST API using Node.js and Express.",
-					done: true,
-				},
-			];
-
-			const insertTransaction = this.db.transaction(
-				(todos: typeof initialTodos) => {
-					for (const todo of todos) {
-						insertTodo.run(
-							todo.id,
-							todo.title,
-							todo.description,
-							todo.done ? 1 : 0,
-						);
-					}
-				},
-			);
-
-			insertTransaction(initialTodos);
+		if (Number(count) > 0) {
+			return;
 		}
+
+		const initialTodos = [
+			{
+				id: crypto.randomUUID(),
+				title: "Learn TypeScript",
+				description: "Understand the basics of TypeScript.",
+				done: false,
+			},
+			{
+				id: crypto.randomUUID(),
+				title: "Build a REST API",
+				description: "Create a simple REST API using Bun and Better Call.",
+				done: true,
+			},
+		];
+
+		await this.sql.begin(async (tx) => {
+			await tx`
+				INSERT INTO todos ${tx(
+					initialTodos.map((todo) => ({
+						...todo,
+						description: todo.description ?? null,
+					})),
+				)}
+			`;
+		});
 	}
 
-	// Create a new todo
-	createTodo(title: string, description?: string, done: boolean = false): Todo {
-		const id = crypto.randomUUID();
-		const insertQuery = this.db.prepare(`
-			INSERT INTO todos (id, title, description, done) 
-			VALUES (?, ?, ?, ?)
-		`);
-
-		insertQuery.run(id, title, description || null, done ? 1 : 0);
-
-		return {
-			id,
-			title,
-			description,
-			done,
-		};
+	private async ensureReady() {
+		await this.ready;
 	}
 
-	// Get all todos with optional filtering
-	getTodos(filter?: string): Todo[] {
-		if (filter) {
-			const query = this.db.prepare(`
-				SELECT id, title, description, done 
-				FROM todos 
-				WHERE title LIKE ? 
-				ORDER BY created_at DESC
-			`);
-			const rows = query.all(`%${filter}%`) as Array<{
-				id: string;
-				title: string;
-				description: string | null;
-				done: number;
-			}>;
-
-			return rows.map((row) => ({
-				id: row.id,
-				title: row.title,
-				description: row.description || undefined,
-				done: Boolean(row.done),
-			}));
-		} else {
-			const query = this.db.prepare(`
-				SELECT id, title, description, done 
-				FROM todos 
-				ORDER BY created_at DESC
-			`);
-			const rows = query.all() as Array<{
-				id: string;
-				title: string;
-				description: string | null;
-				done: number;
-			}>;
-
-			return rows.map((row) => ({
-				id: row.id,
-				title: row.title,
-				description: row.description || undefined,
-				done: Boolean(row.done),
-			}));
-		}
-	}
-
-	// Get a single todo by ID
-	getTodoById(id: string): Todo | undefined {
-		const query = this.db.prepare(`
-			SELECT id, title, description, done 
-			FROM todos 
-			WHERE id = ?
-		`);
-
-		const row = query.get(id) as
-			| {
-					id: string;
-					title: string;
-					description: string | null;
-					done: number;
-			  }
-			| undefined;
-
-		if (!row) return undefined;
-
+	private mapRow(row: TodoRow): Todo {
 		return {
 			id: row.id,
 			title: row.title,
-			description: row.description || undefined,
-			done: Boolean(row.done),
+			description: row.description ?? undefined,
+			done: row.done,
 		};
 	}
 
-	// Update a todo
-	updateTodo(
+	async createTodo(
+		title: string,
+		description?: string,
+		done: boolean = false,
+	): Promise<Todo> {
+		await this.ensureReady();
+
+		const todo = {
+			id: crypto.randomUUID(),
+			title,
+			description: description ?? null,
+			done,
+		};
+
+		const [inserted] = await this.sql`
+			INSERT INTO todos ${this.sql(todo)}
+			RETURNING id, title, description, done
+		`;
+
+		return this.mapRow(inserted as TodoRow);
+	}
+
+	async getTodos(filter?: string): Promise<Todo[]> {
+		await this.ensureReady();
+
+		const rows = (await (filter
+			? this.sql`
+					SELECT id, title, description, done
+					FROM todos
+					WHERE title ILIKE ${`%${filter}%`}
+					ORDER BY done ASC, created_at ASC
+			  `
+			: this.sql`
+					SELECT id, title, description, done
+					FROM todos
+					ORDER BY done ASC, created_at ASC
+			  `)) as TodoRow[];
+
+		return rows.map((row) => this.mapRow(row));
+	}
+
+	async getTodoById(id: string): Promise<Todo | undefined> {
+		await this.ensureReady();
+
+		const rows = await this.sql`
+			SELECT id, title, description, done
+			FROM todos
+			WHERE id = ${id}
+			LIMIT 1
+		`;
+
+		const row = rows[0] as TodoRow | undefined;
+		return row ? this.mapRow(row) : undefined;
+	}
+
+	async updateTodo(
 		id: string,
 		updates: {
 			title?: string;
 			description?: string;
 			done?: boolean;
 		},
-	): Todo | undefined {
-		const existingTodo = this.getTodoById(id);
+	): Promise<Todo | undefined> {
+		await this.ensureReady();
+
+		const existingTodo = await this.getTodoById(id);
 		if (!existingTodo) return undefined;
 
+		const updatesFiltered = Object.fromEntries(
+			Object.entries(updates).filter(([_, v]) => v !== undefined),
+		);
 		const updatedTodo = {
 			...existingTodo,
-			...updates,
+			...updatesFiltered,
 		};
 
-		const updateQuery = this.db.prepare(`
-			UPDATE todos 
-			SET title = ?, description = ?, done = ?, updated_at = CURRENT_TIMESTAMP
-			WHERE id = ?
-		`);
+		const [row] = await this.sql`
+			UPDATE todos
+			SET title = ${updatedTodo.title},
+				description = ${updatedTodo.description ?? null},
+				done = ${updatedTodo.done ?? false},
+				updated_at = NOW()
+			WHERE id = ${id}
+			RETURNING id, title, description, done
+		`;
 
-		updateQuery.run(
-			updatedTodo.title,
-			updatedTodo.description || null,
-			updatedTodo.done ? 1 : 0,
-			id,
-		);
-
-		return updatedTodo;
+		return row ? this.mapRow(row as TodoRow) : undefined;
 	}
 
-	// Delete a todo
-	deleteTodo(id: string): boolean {
-		const deleteQuery = this.db.prepare("DELETE FROM todos WHERE id = ?");
-		const result = deleteQuery.run(id);
-		return result.changes > 0;
+	async deleteTodo(id: string): Promise<boolean> {
+		await this.ensureReady();
+
+		const rows = await this.sql`
+			DELETE FROM todos
+			WHERE id = ${id}
+			RETURNING id
+		`;
+
+		return rows.length > 0;
 	}
 
-	// Close the database connection
-	close() {
-		this.db.close();
+	async close() {
+		await this.ensureReady();
+		await this.sql.close();
 	}
 }
 
-// Create and export a singleton instance
 export const todoDb = new TodoDatabase();
-
-// Export the class for testing or multiple instances if needed
 export { TodoDatabase };
