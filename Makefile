@@ -1,4 +1,12 @@
-.PHONY: db-up db-down db-reset
+.PHONY: help db-up db-down db-reset
+
+# Display available make commands
+help:
+	@echo "Available commands:"
+	@echo "  make help     - Show this help message"
+	@echo "  make db-up    - Start the PostgreSQL service"
+	@echo "  make db-down  - Stop the PostgreSQL container"
+	@echo "  make db-reset - Remove all containers and volumes"
 
 # Start the PostgreSQL service defined in docker-compose.yml
 db-up:
