@@ -39,50 +39,52 @@ function renderTodos(todos: Todo[]) {
 							</h3>
 							<div class="flex items-center gap-4">
 								<span class="text-sm font-semibold ${
-									!todo.done ? "text-error" : "text-success"
+									todo.done ? "text-success" : "text-error"
 								}">
-									${!todo.done ? "Pending" : "Done"}
+									${todo.done ? "Done" : "Pending"}
 								</span>
-								<label class="toggle text-base-content">
-									<input
-										type="checkbox"
-										class="todo-toggle-input"
-										data-todo-id="${todo.id}"
-										${!todo.done ? "checked" : ""}
-										aria-label="Toggle todo status"
-									/>
-									<svg aria-label="enabled" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-										<g
-											stroke-linejoin="round"
-											stroke-linecap="round"
-											stroke-width="4"
+								<div class="tooltip" data-tip="${todo.done ? "Mark as todo" : "Mark as done"}">
+									<label class="toggle text-base-content">
+										<input
+											type="checkbox"
+											class="todo-toggle-input"
+											data-todo-id="${todo.id}"
+											${todo.done ? "checked" : ""}
+											aria-label="Toggle todo status"
+										/>
+										<svg
+											aria-label="disabled"
+											xmlns="http://www.w3.org/2000/svg"
+											viewBox="0 0 24 24"
 											fill="none"
 											stroke="currentColor"
+											stroke-width="4"
+											stroke-linecap="round"
+											stroke-linejoin="round"
 										>
-											<path d="M20 6 9 17l-5-5"></path>
-										</g>
-									</svg>
-									<svg
-										aria-label="disabled"
-										xmlns="http://www.w3.org/2000/svg"
-										viewBox="0 0 24 24"
-										fill="none"
-										stroke="currentColor"
-										stroke-width="4"
-										stroke-linecap="round"
-										stroke-linejoin="round"
-									>
-										<path d="M18 6 6 18" />
-										<path d="m6 6 12 12" />
-									</svg>
-								</label>
+											<path d="M18 6 6 18" />
+											<path d="m6 6 12 12" />
+										</svg>
+										<svg aria-label="enabled" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+											<g
+												stroke-linejoin="round"
+												stroke-linecap="round"
+												stroke-width="4"
+												fill="none"
+												stroke="currentColor"
+											>
+												<path d="M20 6 9 17l-5-5"></path>
+											</g>
+										</svg>
+									</label>
+								</div>
 							</div>
 						</div>
 						${
 							todo.description
 								? `<p class="text-sm text-base-content/70 ${
 										todo.done ? "line-through" : ""
-								  }">${escapeHtml(todo.description)}</p>`
+									}">${escapeHtml(todo.description)}</p>`
 								: ""
 						}
 					</div>
@@ -104,7 +106,7 @@ async function handleToggleChange(event: Event) {
 	const todoId = target.dataset.todoId;
 	if (!todoId) return;
 
-	const isDone = !target.checked;
+	const isDone = target.checked;
 	try {
 		await client("@put/todo", {
 			body: { id: todoId, done: isDone },
