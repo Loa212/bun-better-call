@@ -1,35 +1,53 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 	<head>
-		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>Bun</title>
-  	<script src="https://cdn.tailwindcss.com"></script>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Bun Todos</title>
+		<script src="https://cdn.tailwindcss.com"></script>
 	</head>
-	<body>
-		<div class="flex flex-col	 items-center justify-center gap-3 absolute inset-0 bg-orange-200 ">
-			<h1 class="text-7xl">Bun is <span class="text-blue-500">awesome!</span></h1>
+	<body class="min-h-screen bg-gradient-to-br from-orange-200 to-orange-100">
+		<main class="mx-auto flex max-w-3xl flex-col items-center gap-10 px-4 py-16">
+			<header class="text-center">
+				<h1 class="text-5xl font-bold text-slate-900">
+					Bun is <span class="text-blue-500">awesome!</span>
+				</h1>
+				<p class="mt-4 text-slate-600">Add todos below and stay on this page.</p>
+			</header>
 
-			<div class="ring p-8">
-				<form action="api/todo" method="post" class="flex gap-2">
+			<section class="w-full space-y-6 rounded-2xl bg-white/90 p-8 shadow-lg">
+				<form
+					id="todo-form"
+					action="/api/todo"
+					method="post"
+					class="flex flex-col gap-4 md:flex-row"
+				>
 					<input
+						required
 						name="title"
 						type="text"
 						placeholder="Enter a todo"
-						class="p-2 border border-gray-500 rounded"
+						class="flex-1 rounded border border-slate-300 p-3 text-lg focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
 					/>
 					<button
 						type="submit"
-						class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+						class="rounded bg-blue-500 px-6 py-3 font-semibold text-white transition hover:bg-blue-600"
 					>
 						Add Todo
 					</button>
-			</div>
+				</form>
 
-
-
-			<pre id="todos"></pre>
-		</div>
+				<div class="space-y-3">
+					<h2 class="text-2xl font-semibold text-slate-800">Todos</h2>
+					<div
+						id="todos"
+						class="rounded border border-dashed border-slate-300 bg-slate-50 p-4 text-slate-600"
+					>
+						Loading todos...
+					</div>
+				</div>
+			</section>
+		</main>
 
 		<script type="module" src="/src/lib/client.ts"></script>
 	</body>
