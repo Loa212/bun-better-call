@@ -78,8 +78,6 @@ export const updateTodo = createEndpoint(
 		}),
 	},
 	async (ctx): Promise<Todo> => {
-		console.log("Updating todo", ctx.body);
-
 		const updatedTodo = await todoDb.updateTodo(ctx.body.id, {
 			title: ctx.body.title,
 			description: ctx.body.description,
