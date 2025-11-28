@@ -20,15 +20,31 @@
 					id="todo-form"
 					action="/api/todo"
 					method="post"
-					class="flex flex-col gap-4 md:flex-row"
+					class="flex flex-col gap-4"
 				>
-					<input
-						required
-						name="title"
-						type="text"
-						placeholder="Enter a todo"
-						class="flex-1 rounded border border-slate-300 p-3 text-lg focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-					/>
+					<div class="flex flex-col gap-4 md:flex-row">
+						<input
+							required
+							name="title"
+							type="text"
+							placeholder="Enter a todo"
+							class="flex-1 rounded border border-slate-300 p-3 text-lg focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+						/>
+						<input
+							name="description"
+							type="text"
+							placeholder="Optional description"
+							class="flex-1 rounded border border-slate-300 p-3 text-lg focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+						/>
+					</div>
+					<label class="flex items-center gap-2 text-slate-700">
+						<input
+							type="checkbox"
+							name="done"
+							class="h-5 w-5 rounded border-slate-400 text-blue-500 focus:ring-blue-400"
+						/>
+						<span>Mark as done</span>
+					</label>
 					<button
 						type="submit"
 						class="rounded bg-blue-500 px-6 py-3 font-semibold text-white transition hover:bg-blue-600"

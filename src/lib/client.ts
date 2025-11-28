@@ -9,6 +9,14 @@ const client = createClient<typeof router>({
 const todosContainer = document.getElementById("todos");
 const form = document.getElementById("todo-form") as HTMLFormElement | null;
 
+const escapeHtml = (value: string) =>
+	value
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;")
+		.replace(/'/g, "&#39;");
+
 const renderTodos = (todos: Todo[]) => {
 	if (!todosContainer) return;
 
@@ -19,18 +27,31 @@ const renderTodos = (todos: Todo[]) => {
 	}
 
 	const listItems = todos
-		.map(
-			(todo) => `
-        <li class="rounded border border-slate-200 bg-white p-3 shadow-sm">
-          <p class="font-semibold text-slate-800">${todo.title}</p>
-          ${
+		.map((todo) => {
+			const statusClass = todo.done ? "text-green-600" : "text-yellow-600";
+			const statusLabel = todo.done ? "Done" : "Pending";
+			return `
+				<li class="rounded border border-slate-200 bg-white p-3 shadow-sm">
+					<div class="flex items-center justify-between gap-4">
+						<p class="font-semibold text-slate-800 ${
+							todo.done ? "line-through text-slate-500" : ""
+						}">
+							${escapeHtml(todo.title)}
+						</p>
+						<span class="text-xs font-semibold uppercase tracking-wide ${statusClass}">
+							${statusLabel}
+						</span>
+					</div>
+					${
 						todo.description
-							? `<p class="text-sm text-slate-500">${todo.description}</p>`
+							? `<p class="mt-1 text-sm text-slate-500 ${todo.done ? "line-through" : ""}">
+									${escapeHtml(todo.description)}
+								</p>`
 							: ""
 					}
-        </li>
-      `,
-		)
+				</li>
+			`;
+		})
 		.join("");
 
 	todosContainer.innerHTML = `<ul class="space-y-3">${listItems}</ul>`;
@@ -61,11 +82,30 @@ form?.addEventListener("submit", async (event) => {
 
 	const currentForm = event.currentTarget as HTMLFormElement;
 	const formData = new FormData(currentForm);
+	const title = String(formData.get("title") ?? "").trim();
+	const descriptionRaw = formData.get("description");
+	const description =
+		typeof descriptionRaw === "string" && descriptionRaw.trim().length > 0
+			? descriptionRaw.trim()
+			: undefined;
+	const done = formData.get("done") === "on";
+
+	if (!title) {
+		alert("Title is required.");
+		return;
+	}
 
 	try {
 		const response = await fetch(currentForm.action, {
 			method: currentForm.method,
-			body: formData,
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({
+				title,
+				description,
+				done,
+			}),
 		});
 
 		if (!response.ok) {
