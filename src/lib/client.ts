@@ -107,7 +107,7 @@ async function handleToggleChange(event: Event) {
 	const isDone = !target.checked;
 	try {
 		await client("@put/todo", {
-			query: { id: todoId, done: isDone },
+			body: { id: todoId, done: isDone },
 			throw: true,
 		});
 		await loadTodos();

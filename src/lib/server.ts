@@ -49,32 +49,6 @@ export const getTodo = createEndpoint(
 	},
 );
 
-export const updateTodo = createEndpoint(
-	"/todo",
-	{
-		method: "PUT",
-		query: z.object({
-			id: z.string(),
-			title: z.string().min(2).max(100).optional(),
-			description: z.string().min(5).max(500).optional(),
-			done: z.boolean().optional(),
-		}),
-	},
-	async (ctx): Promise<Todo> => {
-		const updatedTodo = await todoDb.updateTodo(ctx.query.id, {
-			title: ctx.query.title,
-			description: ctx.query.description,
-			done: ctx.query.done,
-		});
-
-		if (!updatedTodo) {
-			throw new Error("Todo not found");
-		}
-
-		return updatedTodo;
-	},
-);
-
 export const deleteTodo = createEndpoint(
 	"/todo",
 	{
@@ -89,6 +63,34 @@ export const deleteTodo = createEndpoint(
 			throw new Error("Todo not found");
 		}
 		return { success: true };
+	},
+);
+
+export const updateTodo = createEndpoint(
+	"/todo",
+	{
+		method: "PUT",
+		body: z.object({
+			id: z.string(),
+			title: z.string().min(2).max(100).optional(),
+			description: z.string().min(5).max(500).optional(),
+			done: z.boolean().optional(),
+		}),
+	},
+	async (ctx): Promise<Todo> => {
+		console.log("Updating todo", ctx.body);
+
+		const updatedTodo = await todoDb.updateTodo(ctx.body.id, {
+			title: ctx.body.title,
+			description: ctx.body.description,
+			done: ctx.body.done,
+		});
+
+		if (!updatedTodo) {
+			throw new Error("Todo not found");
+		}
+
+		return updatedTodo;
 	},
 );
 

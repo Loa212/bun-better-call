@@ -156,9 +156,12 @@ class TodoDatabase {
 		const existingTodo = await this.getTodoById(id);
 		if (!existingTodo) return undefined;
 
+		const updatesFiltered = Object.fromEntries(
+			Object.entries(updates).filter(([_, v]) => v !== undefined),
+		);
 		const updatedTodo = {
 			...existingTodo,
-			...updates,
+			...updatesFiltered,
 		};
 
 		const [row] = await this.sql`
