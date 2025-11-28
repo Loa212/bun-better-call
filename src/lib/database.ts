@@ -118,12 +118,12 @@ class TodoDatabase {
 					SELECT id, title, description, done
 					FROM todos
 					WHERE title ILIKE ${`%${filter}%`}
-					ORDER BY created_at DESC
+					ORDER BY done ASC, created_at ASC
 			  `
 			: this.sql`
 					SELECT id, title, description, done
 					FROM todos
-					ORDER BY created_at DESC
+					ORDER BY done ASC, created_at ASC
 			  `)) as TodoRow[];
 
 		return rows.map((row) => this.mapRow(row));
