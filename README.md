@@ -28,3 +28,15 @@ docker compose up --build
 ```
 
 This exposes the Bun server on `http://localhost:3000` and PostgreSQL on `localhost:5432`. Data is persisted in the `postgres_data` volume. Stop everything with `docker compose down` (add `-v` to also remove the volume).
+
+### Makefile helpers
+
+For quick database-only workflows (handy when running the Bun app locally), use the provided Make targets:
+
+```bash
+make db-up      # start postgres in the background
+make db-down    # stop postgres but keep the data volume
+make db-reset   # stop everything managed by docker-compose and delete volumes
+```
+
+These commands wrap `docker compose` and assume Docker is installed. After `make db-up`, ensure your `.env` still points at `postgres://postgres:postgres@localhost:5432/todos`. `make db-reset` will also stop the Bun app if it was running via Compose.
