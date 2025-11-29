@@ -8,7 +8,7 @@ const client = createClient<typeof router>({
 });
 
 const authClient = createAuthClient({
-	baseURL: `${window.location.origin}/api`,
+	baseURL: `${window.location.origin}/api/auth`,
 });
 
 const todosContainer = document.getElementById("todos");
@@ -208,21 +208,20 @@ async function updateAuthButton() {
 	}
 }
 
-authButton?.addEventListener("click", async () => {
-	try {
-		const session = await authClient.getSession();
-		if (session.data?.user) {
-			// Sign out
-			await authClient.signOut();
-			await updateAuthButton();
-		} else {
-			// Sign in with GitHub
-			await authClient.signIn.social({ provider: "github" });
+	authButton?.addEventListener("click", async () => {
+		try {
+			const session = await authClient.getSession();
+			if (session.data?.user) {
+				// Sign out
+				await authClient.signOut();
+				await updateAuthButton();
+			} else {
+				// Sign in with GitHub
+				const { url } = await authClient.signIn.social({ provider: "github" });
+				window.location.href = url;
+			}
+		} catch (error) {
+			console.error("Auth action failed", error);
+			alert("Authentication failed. Please try again.");
 		}
-	} catch (error) {
-		console.error("Auth action failed", error);
-		alert("Authentication failed. Please try again.");
-	}
-});
-
-await updateAuthButton();
+	});await updateAuthButton();
