@@ -1,3 +1,4 @@
+import { createAuthClient } from "better-auth/client";
 import { createClient } from "better-call/client";
 import type { Todo } from "./database";
 import type { router } from "./server";
@@ -6,8 +7,13 @@ const client = createClient<typeof router>({
 	baseURL: `${window.location.origin}/api`,
 });
 
+const authClient = createAuthClient({
+	baseURL: `${window.location.origin}/api/auth`,
+});
+
 const todosContainer = document.getElementById("todos");
 const form = document.getElementById("todo-form") as HTMLFormElement | null;
+const authButton = document.getElementById("auth-button") as HTMLButtonElement;
 
 const escapeHtml = (value: string) =>
 	value
@@ -182,3 +188,40 @@ form?.addEventListener("submit", async (event) => {
 		alert("Unable to create todo. Please try again.");
 	}
 });
+
+async function updateAuthButton() {
+	try {
+		const session = await authClient.getSession();
+		if (session.data?.user) {
+			authButton.textContent = `Logged in as ${session.data.user.name || session.data.user.email}`;
+			authButton.classList.remove("btn-primary");
+			authButton.classList.add("btn-secondary");
+		} else {
+			authButton.textContent = "Login with GitHub";
+			authButton.classList.remove("btn-secondary");
+			authButton.classList.add("btn-primary");
+		}
+	} catch (error) {
+		console.error("Failed to get session", error);
+		authButton.textContent = "Login with GitHub";
+		authButton.classList.add("btn-primary");
+	}
+}
+
+authButton?.addEventListener("click", async () => {
+	try {
+		const session = await authClient.getSession();
+		if (session.data?.user) {
+			// Sign out
+			await authClient.signOut();
+			await updateAuthButton();
+		} else {
+			// Sign in with GitHub
+			await authClient.signIn.social({ provider: "github" });
+		}
+	} catch (error) {
+		console.error("Auth action failed", error);
+		alert("Authentication failed. Please try again.");
+	}
+});
+await updateAuthButton();
