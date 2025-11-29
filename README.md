@@ -10,6 +10,26 @@ cp .env.example .env
 
 2. Point `DATABASE_URL` to any reachable PostgreSQL instance (the default value matches the Docker Compose stack). `PORT` controls the HTTP server port and `NODE_ENV` is used for runtime logging and tooling.
 
+## Database Schema and Migrations
+
+This project uses Better Auth for authentication, which requires specific database tables. To generate and apply the schema migrations:
+
+1. Ensure your database is running (via Docker Compose or otherwise) and `DATABASE_URL` is set in your environment.
+
+2. Generate the migration files:
+   ```bash
+   DATABASE_URL=postgres://postgres:postgres@localhost:5432/todos bunx @better-auth/cli generate
+   ```
+   This introspects your database and creates SQL migration files in the `better-auth_migrations/` directory.
+
+3. Apply the migrations to your database:
+   ```bash
+   docker exec -i <container-name> psql -U postgres -d todos < better-auth_migrations/<migration-file>.sql
+   ```
+   Replace `<container-name>` with your PostgreSQL container name (e.g., `bun-better-call-postgres-1`) and `<migration-file>` with the generated SQL file name.
+
+After applying the migrations, the authentication tables (`user`, `session`, `account`, `verification`) will be created.
+
 ## Local development
 
 ```bash

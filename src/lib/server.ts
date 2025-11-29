@@ -1,5 +1,6 @@
 import { createEndpoint, createRouter } from "better-call";
 import { z } from "zod";
+import { auth } from "./auth";
 import { type Todo, todoDb } from "./database";
 
 export const createTodo = createEndpoint(
@@ -92,6 +93,17 @@ export const updateTodo = createEndpoint(
 	},
 );
 
+export const authHandler = createEndpoint(
+	"/auth/*",
+	{
+		method: "*",
+	},
+	async ({ request }) => {
+		if (!request) throw new Error("Request object is missing");
+		return await auth.handler(request);
+	},
+);
+
 export const router = createRouter(
 	{
 		createTodo,
@@ -99,6 +111,7 @@ export const router = createRouter(
 		getTodo,
 		updateTodo,
 		deleteTodo,
+		authHandler,
 	},
 	{ basePath: "/api" },
 );
